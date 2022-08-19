@@ -66,19 +66,8 @@ exports.Conditionals = function (dataset){
   if (dataset == "LST_Day_1km"){
     
     var img = exports.LandSurfaceTemperature_day(start, end, region, minTemp, maxTemp)
-    
-    var stats = img.reduceRegion({
-      reducer:ee.Reducer.minMax(),
-      scale:1000,
-      geometry: region
-    }).evaluate(function(stats){
-      
-      
+
     Map.addLayer(img.clip(region), {min: stats.numbDays_min, max: stats.numbDays_max, palette:["blue", "green", "yellow", "orange", "red"]})
-      
-      
-    })
-    
     
     
   }
@@ -87,35 +76,19 @@ exports.Conditionals = function (dataset){
     
     var img = exports.RainfallCriteria(start, end, region, minRain, maxRain)
     
-    var stats = img.reduceRegion({
-      reducer:ee.Reducer.minMax(),
-      scale:1000,
-      geometry: region
-    }).evaluate(function(stats){
-      
-      
+
     Map.addLayer(img.clip(region), {min: stats.numbDays_min, max: stats.numbDays_max, palette:["blue", "green", "yellow", "orange", "red"]})
       
-      
-    })
-    
+
   }
   
   if (dataset == "LST_Night_1km"){
     
     var img = exports.LandSurfaceTemperature_night(start, end, region, minTemp, maxTemp)
     
-    var stats = img.reduceRegion({
-      reducer:ee.Reducer.minMax(),
-      scale:1000,
-      geometry: region
-    }).evaluate(function(stats){
-      
-      
+    
     Map.addLayer(img.clip(region), {min: stats.numbDays_min, max: stats.numbDays_max, palette:["blue", "green", "yellow", "orange", "red"]})
-      
-      
-    })
+
     
   }
   
@@ -123,17 +96,10 @@ exports.Conditionals = function (dataset){
     
     var img = exports.RainfallAndSurfaceTemperature_day(start, end, region, minRain, maxRain, minTemp, maxTemp)
     
-    var stats = img.reduceRegion({
-      reducer:ee.Reducer.minMax(),
-      scale:1000,
-      geometry: region
-    }).evaluate(function(stats){
-      
       
     Map.addLayer(img.clip(region), {min: stats.numbDays_min, max: stats.numbDays_max, palette:["blue", "green", "yellow", "orange", "red"]})
       
-      
-    })
+
     
   }
   
@@ -141,18 +107,9 @@ exports.Conditionals = function (dataset){
     
     var img = exports.RainfallAndSurfaceTemperature_night(start, end, region, minRain, maxRain, minTemp, maxTemp)
     
-    var stats = img.reduceRegion({
-      reducer:ee.Reducer.minMax(),
-      scale:1000,
-      geometry: region
-    }).evaluate(function(stats){
-      
-      
+   
     Map.addLayer(img.clip(region), {min: stats.numbDays_min, max: stats.numbDays_max, palette:["blue", "green", "yellow", "orange", "red"]})
-      
-      
-    })
-    
+
   }
   
 }
@@ -163,7 +120,11 @@ exports.RainfallAndSurfaceTemperature_day = function (start, end, region, minRai
   
   var rainfall_conditional = conditional_rainfall(rainfall,minRain, maxRain)
   
-  var collection = ee.ImageCollection(exports.Collections_LST.MODIS_all_day).filterDate(start, end).filterBounds(region)
+  var collection = ee.Algorithms.If(ee.Date(start).millis().gt(1041340093000).and(ee.Date(end).millis().lt(1609420093000))
+  ,ee.ImageCollection(exports.Collections_LST.MODIS_LST_interpolated_day)
+  ,ee.ImageCollection(exports.Collections_LST.MODIS_all_day))
+  
+  var collection = ee.ImageCollection(collection).filterBounds(region).filterDate(start, end)
   
   var LST_modis_celsius = collection
   
@@ -227,7 +188,11 @@ exports.RainfallAndSurfaceTemperature_night = function (start, end, region, minR
   
   var rainfall_conditional = conditional_rainfall(rainfall,minRain, maxRain)
   
-  var collection = ee.ImageCollection(exports.Collections_LST.MODIS_all_night).filterDate(start, end).filterBounds(region)
+  var collection = ee.Algorithms.If(ee.Date(start).millis().gt(1041340093000).and(ee.Date(end).millis().lt(1609420093000))
+  ,ee.ImageCollection(exports.Collections_LST.MODIS_LST_interpolated_night)
+  ,ee.ImageCollection(exports.Collections_LST.MODIS_all_night))
+  
+  var collection = ee.ImageCollection(collection).filterBounds(region).filterDate(start, end)
   
   var LST_modis_celsius = collection
   
@@ -519,3 +484,4 @@ function rename_day (img){
 function rename_night(img){
   return img.rename("LST_Night_1km").set("system:time_start", img.get("system:time_start"))
 }
+
