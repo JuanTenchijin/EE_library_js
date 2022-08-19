@@ -60,6 +60,13 @@ exports.Collections_LST = {
 * Let's find which are the areas within a region that meet both conditional more days
 */
 
+
+/*
+*
+* This function includes all the other functions. It works with "if" and "else" logic. The only argument the function needs is the name (string) of the dataset
+* Names can be: "LST_Day_1km", "LST_Night_1km", "Rainfall", "LST_day_Rainfall", "LST_night_Rainfall". 
+*/
+
 exports.Conditionals = function (dataset){
   
   
