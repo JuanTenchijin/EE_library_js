@@ -72,39 +72,38 @@ exports.Conditionals = function (dataset){
   
   if (dataset == "LST_Day_1km"){
     
-    var img = exports.LandSurfaceTemperature_day(start, end, region, minTemp, maxTemp)
+    var img = exports.LandSurfaceTemperature_day(start, end, region, minTemp, maxTemp).clip(region)
 
-    Map.addLayer(img.clip(region), {min: stats.numbDays_min, max: stats.numbDays_max, palette:["blue", "green", "yellow", "orange", "red"]})
+    return img
     
     
   }
   
   if (dataset == "Rainfall"){
     
-    var img = exports.RainfallCriteria(start, end, region, minRain, maxRain)
+    var img = exports.RainfallCriteria(start, end, region, minRain, maxRain).clip(region)
     
 
-    Map.addLayer(img.clip(region), {min: stats.numbDays_min, max: stats.numbDays_max, palette:["blue", "green", "yellow", "orange", "red"]})
-      
+    return img
 
   }
   
   if (dataset == "LST_Night_1km"){
     
-    var img = exports.LandSurfaceTemperature_night(start, end, region, minTemp, maxTemp)
+    var img = exports.LandSurfaceTemperature_night(start, end, region, minTemp, maxTemp).clip(region)
     
     
-    Map.addLayer(img.clip(region), {min: stats.numbDays_min, max: stats.numbDays_max, palette:["blue", "green", "yellow", "orange", "red"]})
+    return img
 
     
   }
   
   if (dataset == "LST_day_Rainfall"){
     
-    var img = exports.RainfallAndSurfaceTemperature_day(start, end, region, minRain, maxRain, minTemp, maxTemp)
+    var img = exports.RainfallAndSurfaceTemperature_day(start, end, region, minRain, maxRain, minTemp, maxTemp).clip(region)
     
       
-    Map.addLayer(img.clip(region), {min: stats.numbDays_min, max: stats.numbDays_max, palette:["blue", "green", "yellow", "orange", "red"]})
+    return img
       
 
     
@@ -112,10 +111,10 @@ exports.Conditionals = function (dataset){
   
   if (dataset == "LST_night_Rainfall"){
     
-    var img = exports.RainfallAndSurfaceTemperature_night(start, end, region, minRain, maxRain, minTemp, maxTemp)
+    var img = exports.RainfallAndSurfaceTemperature_night(start, end, region, minRain, maxRain, minTemp, maxTemp).clip(region)
     
    
-    Map.addLayer(img.clip(region), {min: stats.numbDays_min, max: stats.numbDays_max, palette:["blue", "green", "yellow", "orange", "red"]})
+    return img
 
   }
   
