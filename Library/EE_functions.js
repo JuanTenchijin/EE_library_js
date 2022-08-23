@@ -6,7 +6,8 @@ exports.CONSTANTS = {
   SENTINEL2: "COPERNICUS/S2_SR",
   INTERPOLATED_LST_DAY : "projects/sat-io/open-datasets/gap-filled-lst/gf_day_1km",
   INTERPOLATED_LST_NIGHT : "projects/sat-io/open-datasets/gap-filled-lst/gf_night_1km",
-  MODE: {palette:["green", "blue", "yellow", "orange", "red"]}
+  MODE: {palette:["green", "blue", "yellow", "orange", "red"]},
+  LIST_DATASETS : ["LST_Day_1km", "LST_Night_1km", "Rainfall", "LST_day_Rainfall", "LST_night_Rainfall"]
 }
 
 
