@@ -98,6 +98,8 @@ var params = {
 
 // Main function
 
+exports.LALALA = function (){print("LELELE")}
+
 exports.AgriculturalConditionals = function (params){
   
   // Constant parameters for all the datasets (mode, time-period, region, resolution)
