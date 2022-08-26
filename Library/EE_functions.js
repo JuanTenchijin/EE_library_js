@@ -46,19 +46,7 @@ exports.Collections_LST = {
 }
 
 
-//// JSON with parameters for the function
- 
-// Examples on how to print a condition parameter
-
-// print(params.conditions[0]["condition"]["min"])
-// print(params.periods["since"])
-//print(params.conditions[1]["datasetId"])
-
-///// Functions
-
 // Main function
-
-exports.LALALA = function (){print("LELELE")}
 
 exports.AgriculturalConditionals = function (params){
   
@@ -473,7 +461,6 @@ exports.AgriculturalConditionals = function (params){
 
     }
 }
-
 
 
 /*
