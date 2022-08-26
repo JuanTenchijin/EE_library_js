@@ -48,7 +48,8 @@ exports.Collections_LST = {
 
 //// JSON with parameters for the function
 
-        
+
+/*
 var params = {
             "mode": "gradation",
             "polygon": [
@@ -85,6 +86,7 @@ var params = {
             ]
         }
 
+*/
     
 // Examples on how to print a condition parameter
 
@@ -96,7 +98,7 @@ var params = {
 
 // Main function
 
-exports.AgriculturalConditionals(params){
+exports.AgriculturalConditionals = function (params){
   
   // Constant parameters for all the datasets (mode, time-period, region, resolution)
   
