@@ -48,43 +48,6 @@ exports.Collections_LST = {
 
 //// JSON with parameters for the function
 
-        
-var params = {
-            "mode": "gradation",
-            "polygon": [
-                [119, 21.5], [152, 21.5],
-                [152, 48.5], [119, 48.5],
-                [119, 21.5]],
-            "periods": {
-                "since": "2018-03-01",
-                "until": "2018-10-01"
-            },
-            "timeResolution": "DAILY",
-            "conditions": [
-                {
-                    "datasetId": "LST-DAY",
-                    "condition": {
-                        "min": 24,
-                        "max": 32
-                    },
-                },
-                {
-                    "datasetId": "LST-NIGHT",
-                    "condition": {
-                        "min": 10,
-                        "max": 23
-                    },
-                },
-                {
-                    "datasetId": "RAIN",
-                    "condition": {
-                        "min": 0,
-                        "max": 200
-                    },
-                }
-            ]
-        }
-
     
 // Examples on how to print a condition parameter
 
