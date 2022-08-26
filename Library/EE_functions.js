@@ -6,10 +6,8 @@ exports.CONSTANTS = {
   SENTINEL2: "COPERNICUS/S2_SR",
   INTERPOLATED_LST_DAY : "projects/sat-io/open-datasets/gap-filled-lst/gf_day_1km",
   INTERPOLATED_LST_NIGHT : "projects/sat-io/open-datasets/gap-filled-lst/gf_night_1km",
-  MODE: {palette:["green", "blue", "yellow", "orange", "red"]},
-  LIST_DATASETS : ["LST_Day_1km", "LST_Night_1km", "Rainfall", "LST_day_Rainfall", "LST_night_Rainfall"]
+  MODE: {palette:["green", "blue", "yellow", "orange", "red"]}
 }
-
 
 //// Collections LST in Degrees Celsius
 
@@ -48,78 +46,471 @@ exports.Collections_LST = {
 }
 
 
-/*
-*  Functions to export
-*
-*/
+//// JSON with parameters for the function
 
+        
+var params = {
+            "mode": "gradation",
+            "polygon": [
+                [119, 21.5], [152, 21.5],
+                [152, 48.5], [119, 48.5],
+                [119, 21.5]],
+            "periods": {
+                "since": "2018-03-01",
+                "until": "2018-10-01"
+            },
+            "timeResolution": "DAILY",
+            "conditions": [
+                {
+                    "datasetId": "LST-DAY",
+                    "condition": {
+                        "min": 24,
+                        "max": 32
+                    },
+                },
+                {
+                    "datasetId": "LST-NIGHT",
+                    "condition": {
+                        "min": 10,
+                        "max": 23
+                    },
+                },
+                {
+                    "datasetId": "RAIN",
+                    "condition": {
+                        "min": 0,
+                        "max": 200
+                    },
+                }
+            ]
+        }
 
-/*
-*  Function to identify suitable areas to develop crops based on Land Surface Temperature and Rainfall conditionals
-*  First conditional = 10 - 25 degrees
-* Second conditional = 5 mm - 20 mm
-* Let's find which are the areas within a region that meet both conditional more days
-*/
+    
+// Examples on how to print a condition parameter
 
+// print(params.conditions[0]["condition"]["min"])
+// print(params.periods["since"])
+//print(params.conditions[1]["datasetId"])
 
-/*
-*
-* This function includes all the other functions. It works with "if" and "else" logic. The only argument the function needs is the name (string) of the dataset
-* Names can be: "LST_Day_1km", "LST_Night_1km", "Rainfall", "LST_day_Rainfall", "LST_night_Rainfall". 
-*/
+///// Functions
 
-exports.Conditionals = function (dataset){
+// Main function
+
+function AgriculturalConditionals(params){
   
+  // Constant parameters for all the datasets (mode, time-period, region, resolution)
   
-  if (dataset == "LST_Day_1km"){
-    
-    var img = exports.LandSurfaceTemperature_day(start, end, region, minTemp, maxTemp).clip(region)
-
-    return img
-    
-    
-  }
+  var mode = params.mode
   
-  if (dataset == "Rainfall"){
-    
-    var img = exports.RainfallCriteria(start, end, region, minRain, maxRain).clip(region)
-    
-
-    return img
-
-  }
+  var start = params.periods["since"]
+  var end = params.periods["until"]
   
-  if (dataset == "LST_Night_1km"){
-    
-    var img = exports.LandSurfaceTemperature_night(start, end, region, minTemp, maxTemp).clip(region)
-    
-    
-    return img
-
-    
-  }
+  var region = ee.Geometry.Polygon(params.polygon)
   
-  if (dataset == "LST_day_Rainfall"){
+  var resolution = params.timeResolution
+  
+    if (params.conditions[0]["datasetId"] == "LST-DAY" & params.conditions[1]["datasetId"] != "LST-NIGHT" & params.conditions[2]["datasetId"] != "RAIN") {
     
-    var img = exports.RainfallAndSurfaceTemperature_day(start, end, region, minRain, maxRain, minTemp, maxTemp).clip(region)
+    var LST_modis_celsius = ee.ImageCollection(exports.Collections_LST.MODIS_all_day).filterDate(start, end)
     
+    var minTemp = params.conditions[0]["condition"]["min"]
+    
+    var maxTemp = params.conditions[0]["condition"]["max"]
+    
+    var LST_modis_celsius_conditional = conditional_temperature(LST_modis_celsius,minTemp, maxTemp)
+    
+    var output_1000m = LST_modis_celsius_conditional.map(reduceBands).sum().reproject("EPSG:4326", null, 1000).rename("numbDays").clip(region)  //.focal_mode(2)
       
-    return img
+        if (mode == "gradation"){
       
+      return output_1000m.getMap({min: 0,
+                    max: 20,
+                    bands: 'numbDays',
+                    palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
+                    
+        if (mode == "binary"){
+      
+      output_1000m = output_1000m.gt(0).selfMask()
 
+      return output_1000m.getMap({min: 0,
+                    max: 1,
+                    bands: 'numbDays',
+                    palette: ['green']})["urlFormat"]
+                    
+                    }           
+        
+      
+    }
     
+    if (params.conditions[1]["datasetId"] == "LST-NIGHT" & params.conditions[0]["datasetId"] != "LST-DAY" & params.conditions[2]["datasetId"] != "RAIN") {
+    
+    var LST_modis_celsius = ee.ImageCollection(exports.Collections_LST.MODIS_all_night).filterDate(start, end)
+    
+    var minTemp = params.conditions[1]["condition"]["min"]
+    
+    var maxTemp = params.conditions[1]["condition"]["max"]
+    
+    var LST_modis_celsius_conditional = conditional_temperature(LST_modis_celsius,minTemp, maxTemp)
+    
+    var output_1000m = LST_modis_celsius_conditional.map(reduceBands).sum().reproject("EPSG:4326", null, 1000).clip(region).rename("numbDays")  //.focal_mode(2)
+    
+      if (mode == "gradation"){
+      
+      return output_1000m.getMap({min: 0,
+                    max: 20,
+                    bands: 'numbDays',
+                    palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
+                    
+        if (mode == "binary"){
+      
+      output_1000m = output_1000m.gt(0).selfMask()
+
+      return output_1000m.getMap({min: 0,
+                    max: 1,
+                    bands: 'numbDays',
+                    palette: ['green']})["urlFormat"] 
+                    
+                    }          
+      
+    } 
+
+    if (params.conditions[2]["datasetId"] == "RAIN" & params.conditions[0]["datasetId"] != "LST-DAY" & params.conditions[1]["datasetId"] != "LST-NIGHT") {
+    
+    var rainfall = ee.ImageCollection(exports.CONSTANTS.RAINFALL).filterDate(start, end)
+    
+    var minRain = params.conditions[2]["condition"]["min"]
+    
+    var maxRain = params.conditions[2]["condition"]["max"]
+    
+    var rainfall_conditional = conditional_rainfall(rainfall,minRain, maxRain)
+    
+    var output_4000m = rainfall_conditional.map(reduceBands).sum().reproject("EPSG:4326", null, 4000).clip(region).rename("numbDays")
+  
+            if (mode == "gradation"){
+      
+      return output_4000m.getMap({min: 0,
+                    max: 20,
+                    bands: 'numbDays',
+                    palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
+                    
+        if (mode == "binary"){
+      
+      output_4000m = output_4000m.gt(0).selfMask()
+
+      return output_4000m.getMap({min: 0,
+                    max: 1,
+                    bands: 'numbDays',
+                    palette: ['green']})["urlFormat"] 
+                    
+                    }    
+                    
+      
+    } 
+  
+    if (params.conditions[2]["datasetId"] == "RAIN" & params.conditions[0]["datasetId"] == "LST-DAY" & params.conditions[1]["datasetId"] != "LST-NIGHT") {
+      
+    var rainfall = ee.ImageCollection(exports.CONSTANTS.RAINFALL).filterDate(start, end)
+  
+    var minRain = params.conditions[2]["condition"]["min"]
+    
+    var maxRain = params.conditions[2]["condition"]["max"]
+  
+    var rainfall_conditional = conditional_rainfall(rainfall,minRain, maxRain)
+    
+    var collection = exports.Collections_LST.MODIS_LST_interpolated_day
+    
+    var collection = ee.ImageCollection(collection).filterDate(start, end)
+    
+    var LST_modis_celsius = collection
+    
+    var minTemp = params.conditions[0]["condition"]["min"]
+    
+    var maxTemp = params.conditions[0]["condition"]["max"]    
+    
+    var LST_modis_celsius_conditional = conditional_temperature(LST_modis_celsius,minTemp, maxTemp)
+    
+    var list = ee.List.sequence(0, rainfall_conditional.size().subtract(1))
+    
+        ///Combine two image collections
+    var col_rainfall = rainfall_conditional.sort("system:time_start")
+    var col_lst = LST_modis_celsius_conditional.sort("system:time_start")
+    
+    function AddIndex_lst( idx ){
+    var im = col_rainfall.toList(col_rainfall.size()).get(ee.Number(idx));
+    im = ee.Image(im).set("ID", list.get(idx));
+    return im;
   }
   
-  if (dataset == "LST_night_Rainfall"){
+    function AddIndex_rainfall( idx ){
+    var im = col_lst.toList(col_lst.size()).get(ee.Number(idx));
+    im = ee.Image(im).set("ID", list.get(idx));
+    return im;
+  }
     
-    var img = exports.RainfallAndSurfaceTemperature_night(start, end, region, minRain, maxRain, minTemp, maxTemp).clip(region)
+    var lst_nums_rainfall = ee.List.sequence(0, col_rainfall.size().subtract(1));
+    var list = ee.List(list);
+    var lst_ims = lst_nums_rainfall.map(AddIndex_rainfall);
     
-   
-    return img
+    col_rainfall = ee.ImageCollection(lst_ims);
+    
+    var lst_nums_lst = ee.List.sequence(0, col_lst.size().subtract(1));
+    var list = ee.List(list);
+    var lst_ims = lst_nums_lst.map(AddIndex_lst);
+    
+    col_lst = ee.ImageCollection(lst_ims);
+    
+    var filter = ee.Filter.equals({
+      leftField: 'ID',
+      rightField: 'ID'
+    });
+    
+    // Create the join.
+    var simpleJoin = ee.Join.inner();
+    
+    // Inner join
+    var innerJoin = ee.ImageCollection(simpleJoin.apply(col_rainfall, col_lst, filter))
+    
+    var joined_collection = innerJoin.map(function(feature) {
+      return ee.Image.cat(feature.get('primary'), feature.get('secondary'));
+    })
+    
+    var output_1000m = joined_collection.map(reduceBands).sum().reproject("EPSG:4326", null, 1000).focal_mode(1.5).clip(region).rename("numbDays")
+    
+    
+            if (mode == "gradation"){
+      
+      return output_1000m.getMap({min: 0,
+                    max: 20,
+                    bands: 'numbDays',
+                    palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
+                    
+        if (mode == "binary"){
+      
+      output_1000m = output_1000m.gt(0).selfMask()
 
+      return output_1000m.getMap({min: 0,
+                    max: 1,
+                    bands: 'numbDays',
+                    palette: ['green']})["urlFormat"] 
+                    
+                    }    
+
+    } 
+    
+    if (params.conditions[2]["datasetId"] == "RAIN" & params.conditions[1]["datasetId"] == "LST-NIGHT" & params.conditions[0]["datasetId"] != "LST-DAY") {
+      
+    var rainfall = ee.ImageCollection(exports.CONSTANTS.RAINFALL).filterDate(start, end)
+  
+    var minRain = params.conditions[2]["condition"]["min"]
+    
+    var maxRain = params.conditions[2]["condition"]["max"]
+  
+    var rainfall_conditional = conditional_rainfall(rainfall,minRain, maxRain)
+    
+    var collection = exports.Collections_LST.MODIS_LST_interpolated_night
+    
+    var collection = ee.ImageCollection(collection).filterDate(start, end)
+    
+    var LST_modis_celsius = collection
+    
+    var minTemp = params.conditions[1]["condition"]["min"]
+    
+    var maxTemp = params.conditions[1]["condition"]["max"]    
+    
+    var LST_modis_celsius_conditional = conditional_temperature(LST_modis_celsius,minTemp, maxTemp)
+    
+    var list = ee.List.sequence(0, rainfall_conditional.size().subtract(1))
+    
+        ///Combine two image collections
+    var col_rainfall = rainfall_conditional.sort("system:time_start")
+    var col_lst = LST_modis_celsius_conditional.sort("system:time_start")
+    
+    function AddIndex_lst( idx ){
+    var im = col_rainfall.toList(col_rainfall.size()).get(ee.Number(idx));
+    im = ee.Image(im).set("ID", list.get(idx));
+    return im;
   }
   
+    function AddIndex_rainfall( idx ){
+    var im = col_lst.toList(col_lst.size()).get(ee.Number(idx));
+    im = ee.Image(im).set("ID", list.get(idx));
+    return im;
+  }
+    
+    var lst_nums_rainfall = ee.List.sequence(0, col_rainfall.size().subtract(1));
+    var list = ee.List(list);
+    var lst_ims = lst_nums_rainfall.map(AddIndex_rainfall);
+    
+    col_rainfall = ee.ImageCollection(lst_ims);
+    
+    var lst_nums_lst = ee.List.sequence(0, col_lst.size().subtract(1));
+    var list = ee.List(list);
+    var lst_ims = lst_nums_lst.map(AddIndex_lst);
+    
+    col_lst = ee.ImageCollection(lst_ims);
+    
+    var filter = ee.Filter.equals({
+      leftField: 'ID',
+      rightField: 'ID'
+    });
+    
+    // Create the join.
+    var simpleJoin = ee.Join.inner();
+    
+    // Inner join
+    var innerJoin = ee.ImageCollection(simpleJoin.apply(col_rainfall, col_lst, filter))
+    
+    var joined_collection = innerJoin.map(function(feature) {
+      return ee.Image.cat(feature.get('primary'), feature.get('secondary'));
+    })
+    
+    var output_1000m = joined_collection.map(reduceBands).sum().reproject("EPSG:4326", null, 1000).focal_mode(1.5).clip(region).rename("numbDays")
+    
+    
+            if (mode == "gradation"){
+      
+      return output_1000m.getMap({min: 0,
+                    max: 20,
+                    bands: 'numbDays',
+                    palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
+                    
+        if (mode == "binary"){
+      
+      output_1000m = output_1000m.gt(0).selfMask()
+
+      return output_1000m.getMap({min: 0,
+                    max: 1,
+                    bands: 'numbDays',
+                    palette: ['green']})["urlFormat"] 
+                    
+                    }     
+
+    }
+  
+    if (params.conditions[2]["datasetId"] == "RAIN" & params.conditions[1]["datasetId"] == "LST-NIGHT" & params.conditions[0]["datasetId"] == "LST-DAY") {
+      
+    var rainfall = ee.ImageCollection(exports.CONSTANTS.RAINFALL).filterDate(start, end)
+
+    var minRain = params.conditions[2]["condition"]["min"]
+    
+    var maxRain = params.conditions[2]["condition"]["max"]    
+    
+    var rainfall_conditional = conditional_rainfall(rainfall,minRain, maxRain)
+    
+    var collection_LST_day = exports.Collections_LST.MODIS_LST_interpolated_day
+    
+    var collection_LST_day = ee.ImageCollection(collection_LST_day).filterDate(start, end)
+    
+    var LST_modis_celsius_day = collection_LST_day
+    
+    var minTempDay = params.conditions[0]["condition"]["min"]
+    
+    var maxTempDay = params.conditions[0]["condition"]["max"]     
+    
+    var LST_modis_celsius_conditional_day = conditional_temperature(LST_modis_celsius_day,minTempDay, maxTempDay)
+    
+    var collection_LST_night = exports.Collections_LST.MODIS_LST_interpolated_night
+    
+    var collection_LST_night = ee.ImageCollection(collection_LST_night).filterDate(start, end)
+    
+    var LST_modis_celsius_night = collection_LST_night
+    
+    var minTempNight = params.conditions[1]["condition"]["min"]
+    
+    var maxTempNight = params.conditions[1]["condition"]["max"]   
+    
+    var LST_modis_celsius_conditional_night = conditional_temperature(LST_modis_celsius_night,minTempNight, maxTempNight)
+    
+    var list = ee.List.sequence(0, rainfall_conditional.size().subtract(1))
+    
+        ///Combine two image collections
+    var col_rainfall = rainfall_conditional.sort("system:time_start")
+    var col_lst_day = LST_modis_celsius_conditional_day.sort("system:time_start")
+    var col_lst_night = LST_modis_celsius_conditional_night.sort("system:time_start")
+    
+    function AddIndex_rainfall( idx ){
+    var im = col_rainfall.toList(col_rainfall.size()).get(ee.Number(idx));
+    im = ee.Image(im).set("ID", list.get(idx));
+    return im;
+  }
+  
+    function AddIndex_lst_day( idx ){
+    var im = col_lst_day.toList(col_lst_day.size()).get(ee.Number(idx));
+    im = ee.Image(im).set("ID", list.get(idx));
+    return im;
+  }
+  
+    function AddIndex_lst_night( idx ){
+    var im = col_lst_night.toList(col_lst_night.size()).get(ee.Number(idx));
+    im = ee.Image(im).set("ID", list.get(idx));
+    return im;
+  }
+    
+    var lst_nums_rainfall = ee.List.sequence(0, col_rainfall.size().subtract(1));
+    var list = ee.List(list);
+    var lst_ims = lst_nums_rainfall.map(AddIndex_rainfall);
+    
+    col_rainfall = ee.ImageCollection(lst_ims);
+    
+    var lst_nums_lst = ee.List.sequence(0, col_lst_day.size().subtract(1));
+    var list = ee.List(list);
+    var lst_ims = lst_nums_lst.map(AddIndex_lst_day);
+    
+    col_lst_day = ee.ImageCollection(lst_ims);
+    
+    var lst_nums_lst = ee.List.sequence(0, col_lst_night.size().subtract(1));
+    var list = ee.List(list);
+    var lst_ims = lst_nums_lst.map(AddIndex_lst_night);
+    
+    col_lst_night = ee.ImageCollection(lst_ims);
+    
+    
+    var filter = ee.Filter.equals({
+      leftField: 'ID',
+      rightField: 'ID'
+    });
+    
+    // Create the join.
+    var simpleJoin = ee.Join.inner();
+    
+    // Inner join
+    var innerJoin = ee.ImageCollection(simpleJoin.apply(col_rainfall, col_lst_day, filter))
+    
+    var joined_collection = innerJoin.map(function(feature) {
+      return ee.Image.cat(feature.get('primary'), feature.get('secondary'));
+    })
+    
+    var innerJoin2 = ee.ImageCollection(simpleJoin.apply(joined_collection, col_lst_night, filter))
+    
+    var joined_collection_final = innerJoin2.map(function(feature) {
+      return ee.Image.cat(feature.get('primary'), feature.get('secondary'));
+    })
+    
+    var output_1000m = joined_collection_final.map(reduceBands).sum().reproject("EPSG:4326", null, 1000).focal_mode(1.5).clip(region).rename("numbDays")
+    
+    
+                if (mode == "gradation"){
+      
+      return output_1000m.getMap({min: 0,
+                    max: 20,
+                    bands: 'numbDays',
+                    palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
+                    
+        if (mode == "binary"){
+      
+      output_1000m = output_1000m.gt(0).selfMask()
+
+      return output_1000m.getMap({min: 0,
+                    max: 1,
+                    bands: 'numbDays',
+                    palette: ['green']})["urlFormat"] 
+                    
+                    }     
+
+    }
 }
+
+/*
 
 exports.RainfallAndSurfaceTemperature_day = function (start, end, region, minRain, maxRain, minTemp, maxTemp){
   
@@ -127,9 +518,7 @@ exports.RainfallAndSurfaceTemperature_day = function (start, end, region, minRai
   
   var rainfall_conditional = conditional_rainfall(rainfall,minRain, maxRain)
   
-  var collection = ee.Algorithms.If(ee.Date(start).millis().gt(1041340093000).and(ee.Date(end).millis().lt(1609420093000))
-  ,ee.ImageCollection(exports.Collections_LST.MODIS_LST_interpolated_day)
-  ,ee.ImageCollection(exports.Collections_LST.MODIS_all_day))
+  var collection = exports.Collections_LST.MODIS_LST_interpolated_day
   
   var collection = ee.ImageCollection(collection).filterBounds(region).filterDate(start, end)
   
@@ -195,9 +584,7 @@ exports.RainfallAndSurfaceTemperature_night = function (start, end, region, minR
   
   var rainfall_conditional = conditional_rainfall(rainfall,minRain, maxRain)
   
-  var collection = ee.Algorithms.If(ee.Date(start).millis().gt(1041340093000).and(ee.Date(end).millis().lt(1609420093000))
-  ,ee.ImageCollection(exports.Collections_LST.MODIS_LST_interpolated_night)
-  ,ee.ImageCollection(exports.Collections_LST.MODIS_all_night))
+  var collection = exports.Collections_LST.MODIS_LST_interpolated_night
   
   var collection = ee.ImageCollection(collection).filterBounds(region).filterDate(start, end)
   
@@ -292,7 +679,103 @@ exports.LandSurfaceTemperature_night = function (start, end, region, minTemp, ma
   return ee.Image(output_1000m).rename("numbDays")
   
   } 
+
+exports.RainfallAndSurfaceTemperature_day_and_night = function (start, end, region, minRain, maxRain, minTempDay, maxTempDay, minTempNight, maxTempNight){
   
+  var rainfall = ee.ImageCollection(exports.CONSTANTS.RAINFALL).filterDate(start, end)
+  
+  var rainfall_conditional = conditional_rainfall(rainfall,minRain, maxRain)
+  
+  var collection_LST_day = exports.Collections_LST.MODIS_LST_interpolated_day
+  
+  var collection_LST_day = ee.ImageCollection(collection_LST_day).filterDate(start, end)
+  
+  var LST_modis_celsius_day = collection_LST_day
+  
+  var LST_modis_celsius_conditional_day = conditional_temperature(LST_modis_celsius_day,minTempDay, maxTempDay)
+  
+  var collection_LST_night = exports.Collections_LST.MODIS_LST_interpolated_night
+  
+  var collection_LST_night = ee.ImageCollection(collection_LST_night).filterDate(start, end)
+  
+  var LST_modis_celsius_night = collection_LST_night
+  
+  var LST_modis_celsius_conditional_night = conditional_temperature(LST_modis_celsius_night,minTempNight, maxTempNight)
+  
+  var list = ee.List.sequence(0, rainfall_conditional.size().subtract(1))
+  
+      ///Combine two image collections
+  var col_rainfall = rainfall_conditional.sort("system:time_start")
+  var col_lst_day = LST_modis_celsius_conditional_day.sort("system:time_start")
+  var col_lst_night = LST_modis_celsius_conditional_night.sort("system:time_start")
+  
+  function AddIndex_rainfall( idx ){
+  var im = col_rainfall.toList(col_rainfall.size()).get(ee.Number(idx));
+  im = ee.Image(im).set("ID", list.get(idx));
+  return im;
+}
+
+  function AddIndex_lst_day( idx ){
+  var im = col_lst_day.toList(col_lst_day.size()).get(ee.Number(idx));
+  im = ee.Image(im).set("ID", list.get(idx));
+  return im;
+}
+
+  function AddIndex_lst_night( idx ){
+  var im = col_lst_night.toList(col_lst_night.size()).get(ee.Number(idx));
+  im = ee.Image(im).set("ID", list.get(idx));
+  return im;
+}
+  
+  var lst_nums_rainfall = ee.List.sequence(0, col_rainfall.size().subtract(1));
+  var list = ee.List(list);
+  var lst_ims = lst_nums_rainfall.map(AddIndex_rainfall);
+  
+  col_rainfall = ee.ImageCollection(lst_ims);
+  
+  var lst_nums_lst = ee.List.sequence(0, col_lst_day.size().subtract(1));
+  var list = ee.List(list);
+  var lst_ims = lst_nums_lst.map(AddIndex_lst_day);
+  
+  col_lst_day = ee.ImageCollection(lst_ims);
+  
+  var lst_nums_lst = ee.List.sequence(0, col_lst_night.size().subtract(1));
+  var list = ee.List(list);
+  var lst_ims = lst_nums_lst.map(AddIndex_lst_night);
+  
+  col_lst_night = ee.ImageCollection(lst_ims);
+  
+  
+  var filter = ee.Filter.equals({
+    leftField: 'ID',
+    rightField: 'ID'
+  });
+  
+  // Create the join.
+  var simpleJoin = ee.Join.inner();
+  
+  // Inner join
+  var innerJoin = ee.ImageCollection(simpleJoin.apply(col_rainfall, col_lst_day, filter))
+  
+  var joined_collection = innerJoin.map(function(feature) {
+    return ee.Image.cat(feature.get('primary'), feature.get('secondary'));
+  })
+  
+  var innerJoin2 = ee.ImageCollection(simpleJoin.apply(joined_collection, col_lst_night, filter))
+  
+  var joined_collection_final = innerJoin2.map(function(feature) {
+    return ee.Image.cat(feature.get('primary'), feature.get('secondary'));
+  })
+  
+  var output_1000m = joined_collection_final.map(reduceBands).sum().reproject("EPSG:4326", null, 1000).focal_mode(1.5)
+  
+  
+  return output_1000m.rename("numbDays6")
+  
+}
+
+*/
+
 
 /*
 *    HELPER FUNCTIONS
@@ -443,6 +926,7 @@ function LinearResampling(collection, date_attribute, date_interval, region) {
             return [min_img, list];
         }, ee.List([ee.Image(mosaicUpperVal.get(0)), []]))
     )).get(1));
+    
     var interpolated = ee.List(dateSequence.iterate(function (dateVal, acc) {
         acc = ee.List(acc);
         var idx = ee.Number(dateVal).float().divide(date_interval).round().int();
@@ -491,4 +975,5 @@ function rename_day (img){
 function rename_night(img){
   return img.rename("LST_Night_1km").set("system:time_start", img.get("system:time_start"))
 }
+
 
