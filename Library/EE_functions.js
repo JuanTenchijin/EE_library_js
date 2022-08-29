@@ -46,9 +46,57 @@ exports.Collections_LST = {
 }
 
 
+//// JSON with parameters for the function
+
+        
+var params = {
+            "mode": "gradation",
+            "polygon": [
+                [119, 21.5], [152, 21.5],
+                [152, 48.5], [119, 48.5],
+                [119, 21.5]],
+            "periods": {
+                "since": "2018-03-01",
+                "until": "2018-10-01"
+            },
+            "timeResolution": "DAILY",
+            "conditions": [
+                {
+                    "datasetId": "LST-DAY",
+                    "condition": {
+                        "min": 24,
+                        "max": 32
+                    },
+                },
+                {
+                    "datasetId": "LST-NIGHT",
+                    "condition": {
+                        "min": 10,
+                        "max": 23
+                    },
+                },
+                {
+                    "datasetId": "RAIN",
+                    "condition": {
+                        "min": 0,
+                        "max": 200
+                    },
+                }
+            ]
+        }
+
+    
+// Examples on how to print a condition parameter
+
+// print(params.conditions[0]["condition"]["min"])
+// print(params.periods["since"])
+//print(params.conditions[1]["datasetId"])
+
+///// Functions
+
 // Main function
 
-exports.AgriculturalConditionals = function (params){
+exports.AgriculturalConditionals(params){
   
   // Constant parameters for all the datasets (mode, time-period, region, resolution)
   
@@ -460,7 +508,105 @@ exports.AgriculturalConditionals = function (params){
                     }     
 
     }
+    
+    if (params.conditions[2]["datasetId"] != "RAIN" & params.conditions[1]["datasetId"] == "LST-NIGHT" & params.conditions[0]["datasetId"] == "LST-DAY") {
+    
+    var collection_LST_day = exports.Collections_LST.MODIS_LST_interpolated_day
+    
+    var collection_LST_day = ee.ImageCollection(collection_LST_day).filterDate(start, end)
+    
+    var LST_modis_celsius_day = collection_LST_day
+    
+    var minTempDay = params.conditions[0]["condition"]["min"]
+    
+    var maxTempDay = params.conditions[0]["condition"]["max"]     
+    
+    var LST_modis_celsius_conditional_day = conditional_temperature(LST_modis_celsius_day,minTempDay, maxTempDay)
+    
+    var collection_LST_night = exports.Collections_LST.MODIS_LST_interpolated_night
+    
+    var collection_LST_night = ee.ImageCollection(collection_LST_night).filterDate(start, end)
+    
+    var LST_modis_celsius_night = collection_LST_night
+    
+    var minTempNight = params.conditions[1]["condition"]["min"]
+    
+    var maxTempNight = params.conditions[1]["condition"]["max"]   
+    
+    var LST_modis_celsius_conditional_night = conditional_temperature(LST_modis_celsius_night,minTempNight, maxTempNight)
+    
+    var list = ee.List.sequence(0, rainfall_conditional.size().subtract(1))
+    
+        ///Combine two image collections
+    
+    var col_lst_day = LST_modis_celsius_conditional_day.sort("system:time_start")
+    var col_lst_night = LST_modis_celsius_conditional_night.sort("system:time_start")
+  
+    function AddIndex_lst_day( idx ){
+    var im = col_lst_day.toList(col_lst_day.size()).get(ee.Number(idx));
+    im = ee.Image(im).set("ID", list.get(idx));
+    return im;
+  }
+  
+    function AddIndex_lst_night( idx ){
+    var im = col_lst_night.toList(col_lst_night.size()).get(ee.Number(idx));
+    im = ee.Image(im).set("ID", list.get(idx));
+    return im;
+  }
+    
+    var lst_nums_lst = ee.List.sequence(0, col_lst_day.size().subtract(1));
+    var list = ee.List(list);
+    var lst_ims = lst_nums_lst.map(AddIndex_lst_day);
+    
+    col_lst_day = ee.ImageCollection(lst_ims);
+    
+    var lst_nums_lst = ee.List.sequence(0, col_lst_night.size().subtract(1));
+    var list = ee.List(list);
+    var lst_ims = lst_nums_lst.map(AddIndex_lst_night);
+    
+    col_lst_night = ee.ImageCollection(lst_ims);
+    
+    
+    var filter = ee.Filter.equals({
+      leftField: 'ID',
+      rightField: 'ID'
+    });
+    
+    // Create the join.
+    var simpleJoin = ee.Join.inner();
+    
+    // Inner join
+    var innerJoin = ee.ImageCollection(simpleJoin.apply(col_lst_night, col_lst_day, filter))
+    
+    var joined_collection = innerJoin.map(function(feature) {
+      return ee.Image.cat(feature.get('primary'), feature.get('secondary'));
+    })
+    
+    
+    var output_1000m = joined_collection.map(reduceBands).sum().reproject("EPSG:4326", null, 1000).clip(region).rename("numbDays")
+    
+    
+                if (mode == "gradation"){
+      
+      return output_1000m.getMap({min: 0,
+                    max: 20,
+                    bands: 'numbDays',
+                    palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
+                    
+        if (mode == "binary"){
+      
+      output_1000m = output_1000m.gt(0).selfMask()
+
+      return output_1000m.getMap({min: 0,
+                    max: 1,
+                    bands: 'numbDays',
+                    palette: ['green']})["urlFormat"] 
+                    
+                    }     
+
+    }
 }
+
 
 
 /*
@@ -661,6 +807,13 @@ function rename_day (img){
 function rename_night(img){
   return img.rename("LST_Night_1km").set("system:time_start", img.get("system:time_start"))
 }
+
+
+//////////
+///////////
+
+
+
 
 
 
