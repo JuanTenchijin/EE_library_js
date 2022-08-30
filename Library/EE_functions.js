@@ -49,42 +49,6 @@ exports.Collections_LST = {
 //// JSON with parameters for the function
 
         
-var params = {
-            "mode": "gradation",
-            "polygon": [
-                [119, 21.5], [152, 21.5],
-                [152, 48.5], [119, 48.5],
-                [119, 21.5]],
-            "periods": {
-                "since": "2018-03-01",
-                "until": "2018-10-01"
-            },
-            "timeResolution": "DAILY",
-            "conditions": [
-                {
-                    "datasetId": "LST-DAY",
-                    "condition": {
-                        "min": 24,
-                        "max": 32
-                    },
-                },
-                {
-                    "datasetId": "LST-NIGHT",
-                    "condition": {
-                        "min": 10,
-                        "max": 23
-                    },
-                },
-                {
-                    "datasetId": "RAIN",
-                    "condition": {
-                        "min": 0,
-                        "max": 200
-                    },
-                }
-            ]
-        }
-
     
 // Examples on how to print a condition parameter
 
@@ -96,7 +60,7 @@ var params = {
 
 // Main function
 
-exports.AgriculturalConditionals(params){
+exports.AgriculturalConditionals = function (params) {
   
   // Constant parameters for all the datasets (mode, time-period, region, resolution)
   
@@ -535,7 +499,7 @@ exports.AgriculturalConditionals(params){
     
     var LST_modis_celsius_conditional_night = conditional_temperature(LST_modis_celsius_night,minTempNight, maxTempNight)
     
-    var list = ee.List.sequence(0, rainfall_conditional.size().subtract(1))
+    var list = ee.List.sequence(0, LST_modis_celsius_conditional_day.size().subtract(1))
     
         ///Combine two image collections
     
@@ -807,14 +771,6 @@ function rename_day (img){
 function rename_night(img){
   return img.rename("LST_Night_1km").set("system:time_start", img.get("system:time_start"))
 }
-
-
-//////////
-///////////
-
-
-
-
 
 
 
