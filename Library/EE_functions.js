@@ -87,8 +87,14 @@ exports.AgriculturalConditionals = function (params) {
       
         if (mode == "gradation"){
       
+      var start_date = ee.Date(start)
+      
+      var end_date = ee.Date(end)
+      
+      var total_days = end_date.difference(start_date, "day");
+      
       return output_1000m.getMap({min: 0,
-                    max: 20,
+                    max: total_days.getInfo(),
                     bands: 'numbDays',
                     palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
                     
@@ -119,9 +125,15 @@ exports.AgriculturalConditionals = function (params) {
     var output_1000m = LST_modis_celsius_conditional.map(reduceBands).sum().reproject("EPSG:4326", null, 1000).clip(region).rename("numbDays")  //.focal_mode(2)
     
       if (mode == "gradation"){
+        
+      var start_date = ee.Date(start)
+      
+      var end_date = ee.Date(end)
+      
+      var total_days = end_date.difference(start_date, "day");
       
       return output_1000m.getMap({min: 0,
-                    max: 20,
+                    max: total_days.getInfo(),
                     bands: 'numbDays',
                     palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
                     
@@ -151,9 +163,15 @@ exports.AgriculturalConditionals = function (params) {
     var output_4000m = rainfall_conditional.map(reduceBands).sum().reproject("EPSG:4326", null, 4000).clip(region).rename("numbDays")
   
             if (mode == "gradation"){
+              
+      var start_date = ee.Date(start)
       
-      return output_4000m.getMap({min: 0,
-                    max: 20,
+      var end_date = ee.Date(end)
+      
+      var total_days = end_date.difference(start_date, "day");
+      
+      return output_1000m.getMap({min: 0,
+                    max: total_days.getInfo(),
                     bands: 'numbDays',
                     palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
                     
@@ -243,8 +261,14 @@ exports.AgriculturalConditionals = function (params) {
     
             if (mode == "gradation"){
       
+      var start_date = ee.Date(start)
+      
+      var end_date = ee.Date(end)
+      
+      var total_days = end_date.difference(start_date, "day");
+      
       return output_1000m.getMap({min: 0,
-                    max: 20,
+                    max: total_days.getInfo(),
                     bands: 'numbDays',
                     palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
                     
@@ -333,8 +357,14 @@ exports.AgriculturalConditionals = function (params) {
     
             if (mode == "gradation"){
       
+      var start_date = ee.Date(start)
+      
+      var end_date = ee.Date(end)
+      
+      var total_days = end_date.difference(start_date, "day");
+      
       return output_1000m.getMap({min: 0,
-                    max: 20,
+                    max: total_days.getInfo(),
                     bands: 'numbDays',
                     palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
                     
@@ -455,8 +485,14 @@ exports.AgriculturalConditionals = function (params) {
     
                 if (mode == "gradation"){
       
+      var start_date = ee.Date(start)
+      
+      var end_date = ee.Date(end)
+      
+      var total_days = end_date.difference(start_date, "day");
+      
       return output_1000m.getMap({min: 0,
-                    max: 20,
+                    max: total_days.getInfo(),
                     bands: 'numbDays',
                     palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
                     
@@ -552,8 +588,14 @@ exports.AgriculturalConditionals = function (params) {
     
                 if (mode == "gradation"){
       
+      var start_date = ee.Date(start)
+      
+      var end_date = ee.Date(end)
+      
+      var total_days = end_date.difference(start_date, "day");
+      
       return output_1000m.getMap({min: 0,
-                    max: 20,
+                    max: total_days.getInfo(),
                     bands: 'numbDays',
                     palette: ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#264653']})["urlFormat"] }
                     
